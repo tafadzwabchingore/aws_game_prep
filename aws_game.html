@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
+	<title>AWS Prep Game</title>
+	<style>
+		:root{
+			--bg:#fff8e7; --card:#ffffff; --accent:#ff7a59; --accent-2:#ffd54f; --good:#2ecc71; --bad:#e74c3c; --muted:#5b6b70; --accent-3:#4fb3ff;
+			--shadow: 0 6px 18px rgba(42,48,56,0.12);
+		}
+		*{box-sizing:border-box}
+		body{font-family:Inter,Segoe UI,Roboto,Arial; margin:0; background:linear-gradient(180deg,var(--bg),#fff); color:#102027}
+		header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;background:linear-gradient(90deg,#fff,#fff8f0);border-bottom:1px solid #ffe9cf}
+		.brand{display:flex;gap:12px;align-items:center}
+		.logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-3));display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+		main{max-width:1100px;margin:28px auto;padding:16px}
+		.grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
+		.card{background:var(--card);padding:16px;border-radius:12px;box-shadow:var(--shadow)}
+		h1{margin:0;font-size:20px}
+		label{display:block;margin:10px 0 6px;color:var(--muted);font-size:13px}
+		select,input[type=number]{width:100%;padding:10px;border-radius:8px;border:1px solid #e6e6e6}
+		button{background:var(--accent);color:white;padding:10px 14px;border-radius:10px;border:0;cursor:pointer}
+		button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+		.badge-pill{display:inline-block;padding:8px 10px;border-radius:999px;background:linear-gradient(90deg,var(--accent-2),#fff);font-weight:600}
+		.top-stats{display:flex;gap:12px;align-items:center}
+		.questions-list{margin-top:12px}
+		.question{margin:14px 0}
+		.choices{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+		.choice{padding:12px;border-radius:10px;border:1px solid #eee;background:#fbfbfb;cursor:pointer}
+		.choice.correct{border-color:var(--good);background:linear-gradient(90deg,#f3fff6,#f7fff9)}
+		.choice.wrong{border-color:var(--bad);background:#fff6f6}
+		.explain{margin-top:10px;padding:10px;border-radius:8px;background:#f8f9fa;color:#1b2b2b}
+		footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+		nav{display:flex;gap:8px}
+		.link{color:var(--accent-3);cursor:pointer}
+		.small{font-size:13px;color:var(--muted)}
+		/* responsive */
+		@media(max-width:920px){.grid{grid-template-columns:1fr} .card{margin-bottom:12px}}
+	</style>
+</head>
+<body>
+	<header>
+		<div class="brand">
+			<div class="logo">AWS</div>
+			<div>
+				<h1>AWS Prep Game</h1>
+				<div class="small">Practice, track progress, earn badges</div>
+			</div>
+		</div>
+		<div class="top-stats">
+			<div class="card" style="padding:10px 14px;display:flex;gap:10px;align-items:center">
+				<div style="text-align:center">
+					<div style="font-weight:700;font-size:18px" id="badgeTotal">0</div>
+					<div class="small">Badges</div>
+				</div>
+				<button class="ghost" id="viewBadges">View</button>
+			</div>
+			<nav>
+				<div class="link" id="goHome">Home</div>
+				<div class="link" id="goProgress">Progress</div>
+				<div class="link" id="goHelp">Help</div>
+			</nav>
+		</div>
+	</header>
+
+	<main>
+		<div class="grid">
+			<section class="card" id="homePanel">
+				<label for="topicSelect">Choose topic</label>
+				<select id="topicSelect"><option value="all">All Topics (Mixed)</option></select>
+				<label for="numQ">Number of questions</label>
+				<input id="numQ" type="number" min="1" max="60" value="10">
+				<div style="display:flex;gap:8px;margin-top:12px">
+					<button id="startBtn">Start Quiz</button>
+					<button class="ghost" id="randomizeBtn">Random Quick Quiz</button>
+				</div>
+
+				<div style="margin-top:16px">
+					<div class="small">Quick tips:</div>
+					<ul style="margin:8px 0 0 18px;color:var(--muted)">
+						<li>Immediate feedback with brief explanations</li>
+						<li>Progress saved locally (privacy-first)</li>
+						<li>Daily time and visit tracking</li>
+					</ul>
+				</div>
+			</section>
+
+			<aside class="card" id="progressPanel">
+				<div style="display:flex;justify-content:space-between;align-items:center">
+					<div><strong>Progress</strong><div class="small">Recent quizzes & stats</div></div>
+					<button class="ghost" id="clearData">Clear Data</button>
+				</div>
+				<div id="recentList" style="margin-top:12px"></div>
+				<hr style="margin:12px 0" />
+				<div><strong>Today</strong>
+					<div class="small">Time spent: <span id="todayTime">0s</span></div>
+					<div class="small">Days visited: <span id="daysVisited">0</span></div>
+				</div>
+			</aside>
+		</div>
+
+		<section class="card" id="quizArea" style="display:none;margin-top:18px">
+			<div style="display:flex;justify-content:space-between;align-items:center">
+				<div>
+					<div class="small">Topic: <span id="quizTopic"></span></div>
+					<div style="font-weight:700" id="qProgress">Question 1 / 10</div>
+				</div>
+				<div>
+					<div class="small">Score: <span id="scoreCur">0</span></div>
+					<div class="small">Time: <span id="quizTimer">0s</span></div>
+				</div>
+			</div>
+			<div class="question" id="questionText" style="margin-top:12px;font-size:18px"></div>
+			<div class="choices" id="choices"></div>
+			<div id="explanation" class="explain" style="display:none"></div>
+			<div style="display:flex;gap:8px;margin-top:12px">
+				<button id="nextBtn" style="display:none">Next</button>
+				<button id="finishBtn" style="display:none">Finish</button>
+				<button class="ghost" id="quitBtn">Quit</button>
+			</div>
+		</section>
+
+		<section class="card" id="resultArea" style="display:none;margin-top:18px">
+			<h2 id="resultTitle">Results</h2>
+			<div id="resultSummary"></div>
+			<div style="margin-top:12px">
+				<button id="retakeBtn">Retake</button>
+				<button class="ghost" id="newQuizBtn">New Quiz</button>
+			</div>
+		</section>
+
+		<section class="card" id="badgesModal" style="display:none;margin-top:18px">
+			<h3>Badges</h3>
+			<div class="small">Click the badge to view counts</div>
+			<div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+				<div style="text-align:center"><div style="font-size:22px">🥇</div><div id="goldCount">0</div></div>
+				<div style="text-align:center"><div style="font-size:22px">🥈</div><div id="silverCount">0</div></div>
+				<div style="text-align:center"><div style="font-size:22px">🥉</div><div id="bronzeCount">0</div></div>
+			</div>
+		</section>
+
+		<section class="card" id="helpPanel" style="display:none;margin-top:18px">
+			<h3>Help & Instructions</h3>
+			<ul>
+				<li>Select a topic or "All Topics" and choose how many questions you want.</li>
+				<li>Each question gives immediate feedback, explanation, and the correct answer if you were wrong.</li>
+				<li>Progress and badges are saved locally in your browser.</li>
+				<li>Time per quiz and daily totals are tracked for motivation.</li>
+			</ul>
+		</section>
+
+		<footer>
+			Built for practice — data stored locally in your browser.
+		</footer>
+	</main>
+
+	<script>
+		// Persistent storage keys
+		const STORAGE_KEY = 'aws_game_progress_v1';
+		const BADGE_KEY = 'aws_game_badges_v1';
+		const SEEN_KEY = 'aws_game_seenIntro_v1';
+		const DAILY_TIME_KEY = 'aws_game_daily_time_v1';
+
+		// Elements
+		const topicSelect = document.getElementById('topicSelect');
+		const numQ = document.getElementById('numQ');
+		const startBtn = document.getElementById('startBtn');
+		const randomizeBtn = document.getElementById('randomizeBtn');
+		const homePanel = document.getElementById('homePanel');
+		const quizArea = document.getElementById('quizArea');
+		const questionText = document.getElementById('questionText');
+		const choicesEl = document.getElementById('choices');
+		const explanationEl = document.getElementById('explanation');
+		const qProgress = document.getElementById('qProgress');
+		const quizTopic = document.getElementById('quizTopic');
+		const scoreCur = document.getElementById('scoreCur');
+		const quizTimer = document.getElementById('quizTimer');
+		const nextBtn = document.getElementById('nextBtn');
+		const finishBtn = document.getElementById('finishBtn');
+		const quitBtn = document.getElementById('quitBtn');
+		const resultArea = document.getElementById('resultArea');
+		const resultSummary = document.getElementById('resultSummary');
+		const retakeBtn = document.getElementById('retakeBtn');
+		const newQuizBtn = document.getElementById('newQuizBtn');
+		const recentList = document.getElementById('recentList');
+		const todayTime = document.getElementById('todayTime');
+		const daysVisited = document.getElementById('daysVisited');
+		const badgeTotal = document.getElementById('badgeTotal');
+		const viewBadges = document.getElementById('viewBadges');
+		const badgesModal = document.getElementById('badgesModal');
+		const goldCount = document.getElementById('goldCount');
+		const silverCount = document.getElementById('silverCount');
+		const bronzeCount = document.getElementById('bronzeCount');
+		const clearData = document.getElementById('clearData');
+		const goHome = document.getElementById('goHome');
+		const goProgress = document.getElementById('goProgress');
+		const goHelp = document.getElementById('goHelp');
+
+		let questions = [];
+		// 60 questions across topics
+		questions = [
+			// Compute (10)
+			{topic:'Compute',q:'Which AWS service is best for running containers with minimal management overhead?',choices:['EC2','ECS with Fargate','EKS on-prem','Lambda (no containers)'],a:1,ex:'ECS with Fargate lets you run containers without provisioning servers.'},
+			{topic:'Compute',q:'Which service provides serverless compute for short-lived functions?',choices:['S3','Lambda','EC2','Elastic Beanstalk'],a:1,ex:'AWS Lambda runs code in response to events without servers.'},
+			{topic:'Compute',q:'What is the main purpose of Amazon EC2 Auto Scaling?',choices:['Automatically patch instances','Adjust instance count to demand','Store data versions','Route traffic globally'],a:1,ex:'Auto Scaling adds/removes EC2 instances to meet demand.'},
+			{topic:'Compute',q:'Which service manages Kubernetes for you?',choices:['ECS','EKS','Lightsail','Batch'],a:1,ex:'EKS is Amazon’s managed Kubernetes service.'},
+			{topic:'Compute',q:'When would you choose Spot Instances?',choices:['For predictable workloads','When cost sensitivity matters for fault-tolerant jobs','For critical single-instance databases','For low-latency networking only'],a:1,ex:'Spot instances are cheaper but can be reclaimed—good for fault-tolerant tasks.'},
+			{topic:'Compute',q:'Which compute option is best for running long-lived stateful VMs?',choices:['EC2','Lambda','Fargate','S3'],a:0,ex:'EC2 provides full VMs suitable for long-lived stateful services.'},
+			{topic:'Compute',q:'Elastic Beanstalk is best described as?',choices:['A container orchestration only','A PaaS that deploys and manages applications','A database service','A network firewall'],a:1,ex:'Elastic Beanstalk automates deployment and capacity provisioning.'},
+			{topic:'Compute',q:'AWS Batch is primarily used for?',choices:['Real-time APIs','Batch processing and compute jobs','Managed databases','Static website hosting'],a:1,ex:'AWS Batch schedules and runs batch computing jobs.'},
+			{topic:'Compute',q:'Which offers the least operational burden?',choices:['Self-managed EC2 cluster','EKS on EC2 nodes','ECS with Fargate','Manual scaling scripts'],a:2,ex:'ECS with Fargate removes server management responsibilities.'},
+			{topic:'Compute',q:'EC2 instance types are chosen primarily based on?',choices:['Cost only','CPU/Memory/Disk/Network profile','Region only','Security compliance'],a:1,ex:'Instance types match workload resource needs like CPU and memory.'},
+
+			// Storage (10)
+			{topic:'Storage',q:'Which S3 storage class is best for infrequent access with rapid retrieval?',choices:['S3 Standard','S3 Intelligent-Tiering','S3 Standard-IA','S3 Glacier Deep Archive'],a:2,ex:'Standard-IA is for infrequent access with low latency retrieval.'},
+			{topic:'Storage',q:'For archival data with retrieval in hours, choose?',choices:['S3 Glacier Instant','S3 Standard','S3 Glacier','EBS'],a:2,ex:'S3 Glacier is optimized for archive with hours retrieval time.'},
+			{topic:'Storage',q:'Which storage provides block-level storage for EC2?',choices:['S3','EBS','EFS','Glacier'],a:1,ex:'EBS provides block storage volumes for EC2 instances.'},
+			{topic:'Storage',q:'Which service provides file storage for multiple EC2 instances?',choices:['EBS','S3','EFS','FSx'],a:2,ex:'EFS is elastic file storage mounted by multiple instances.'},
+			{topic:'Storage',q:'For high-performance Windows file workloads use?',choices:['EFS','FSx for Windows File Server','S3','Glacier'],a:1,ex:'Amazon FSx for Windows File Server supports native SMB protocols.'},
+			{topic:'Storage',q:'Which offers object storage?',choices:['EBS','S3','EFS','FSx'],a:1,ex:'S3 stores data as objects in buckets.'},
+			{topic:'Storage',q:'S3 versioning helps with?',choices:['Encrypting data','Protecting against accidental deletes','Faster retrieval','Lower cost'],a:1,ex:'Versioning retains previous object versions to recover from accidental deletes.'},
+			{topic:'Storage',q:'Which provides block-level snapshots?',choices:['S3','EBS','Route53','CloudFront'],a:1,ex:'EBS supports snapshots for point-in-time backups.'},
+			{topic:'Storage',q:'For caching frequently accessed objects use?',choices:['S3','CloudFront CDN','EBS','Lambda'],a:1,ex:'CloudFront caches content at edge locations for low latency.'},
+			{topic:'Storage',q:'Which is best for large-scale cold storage at lowest cost?',choices:['S3 Standard','S3 Standard-IA','S3 Glacier Deep Archive','EFS'],a:2,ex:'Glacier Deep Archive is the lowest-cost option for long-term archive.'},
+
+			// Networking (8)
+			{topic:'Networking',q:'What does VPC stand for?',choices:['Virtual Private Cloud','Virtual Public Cloud','Verified Private Cluster','Virtual Physical Cloud'],a:0,ex:'VPC is Virtual Private Cloud, a logically isolated network.'},
+			{topic:'Networking',q:'Which service routes DNS globally?',choices:['CloudFront','Route 53','VPC','API Gateway'],a:1,ex:'Route 53 is AWS’s DNS and routing service.'},
+			{topic:'Networking',q:'A subnet is a range of IP addresses within a?',choices:['S3 bucket','VPC','EC2 instance','CloudFront distribution'],a:1,ex:'Subnets partition a VPC’s IP address range.'},
+			{topic:'Networking',q:'Use NAT Gateway when?',choices:['Instances need public IPs','Private instances need outbound internet access','You want to route DNS','You want to host websites'],a:1,ex:'NAT Gateway lets private instances access the internet without public IPs.'},
+			{topic:'Networking',q:'Security Groups act as?',choices:['Network ACLs','Instance-level firewalls','Billing alerts','DNS servers'],a:1,ex:'Security Groups are virtual instance-level firewalls.'},
+			{topic:'Networking',q:'Which helps accelerate content delivery globally?',choices:['Route53','CloudFront CDN','ECS','IAM'],a:1,ex:'CloudFront caches and serves content from edge locations.'},
+			{topic:'Networking',q:'VPC peering allows?',choices:['Cross-account billing','Direct network routing between VPCs','Scaling autoscaling','Lambda triggers'],a:1,ex:'VPC peering connects two VPCs for private communication.'},
+			{topic:'Networking',q:'AWS Direct Connect provides?',choices:['Dedicated network connection to AWS','Public internet routing','Serverless functions','Managed database'],a:0,ex:'Direct Connect is a private network connection from your datacenter to AWS.'},
+
+			// Security (8)
+			{topic:'Security',q:'Which service manages identities and access?',choices:['IAM','Inspector','GuardDuty','Shield'],a:0,ex:'IAM manages users, roles, policies and permissions.'},
+			{topic:'Security',q:'To encrypt data at rest in S3 use?',choices:['Server-side encryption (SSE)','Client-side only','IAM roles','Route53'],a:0,ex:'SSE with KMS or S3-managed keys encrypts objects at rest.'},
+			{topic:'Security',q:'Which service detects threats at account level?',choices:['GuardDuty','CloudWatch','S3','EBS'],a:0,ex:'GuardDuty identifies malicious activity using threat intelligence.'},
+			{topic:'Security',q:'Use KMS for?',choices:['Key management and encryption','Storing objects','Network routing','Serverless execution'],a:0,ex:'KMS manages cryptographic keys for encryption.'},
+			{topic:'Security',q:'Security Groups are stateful while NACLs are?',choices:['Stateless','Also stateful','Immutable','Encrypted'],a:0,ex:'NACLs are stateless; Security Groups are stateful.'},
+			{topic:'Security',q:'AWS Shield protects against?',choices:['Data storage','DDoS attacks','IAM misconfigurations','Cost overruns'],a:1,ex:'AWS Shield provides DDoS protection.'},
+			{topic:'Security',q:'What is least-privilege?',choices:['Granting all permissions','Granting minimal permissions required','Ignoring IAM','Using root credentials always'],a:1,ex:'Least-privilege means only grant permissions needed to perform tasks.'},
+			{topic:'Security',q:'AWS WAF is used to?',choices:['Manage IAM users','Filter and block web requests','Store large datasets','Monitor cost'],a:1,ex:'WAF protects web apps by filtering malicious HTTP requests.'},
+
+			// Databases (8)
+			{topic:'Databases',q:'RDS provides?',choices:['Managed relational databases','Object storage','Function execution','Container orchestration'],a:0,ex:'RDS is a managed relational database service.'},
+			{topic:'Databases',q:'DynamoDB is best described as?',choices:['Relational DB','NoSQL key-value and document DB','Data warehouse','Search service'],a:1,ex:'DynamoDB is a scalable NoSQL key-value/document database.'},
+			{topic:'Databases',q:'Aurora is?',choices:['A serverless compute','A MySQL/Postgres-compatible managed DB with performance enhancements','A CDN','A messaging service'],a:1,ex:'Aurora is a performant, managed relational DB compatible with MySQL/Postgres.'},
+			{topic:'Databases',q:'Redshift is used for?',choices:['OLAP data warehouse','OLTP transactional DB','Caching layer','Key management'],a:0,ex:'Redshift is a data warehouse for analytics.'},
+			{topic:'Databases',q:'Multi-AZ RDS helps with?',choices:['Scaling reads','High availability and failover','Lower storage cost','DNS routing'],a:1,ex:'Multi-AZ provides synchronous standby for failover.'},
+			{topic:'Databases',q:'Use read replicas for?',choices:['Writing faster','Scaling read-heavy workloads','Encrypting data','Monitoring costs'],a:1,ex:'Read replicas offload read traffic from primary DB.'},
+			{topic:'Databases',q:'DynamoDB uses which scaling model?',choices:['Vertical only','Horizontal scaling with partitions','Manual sharding only','No scaling'],a:1,ex:'DynamoDB partitions data and scales horizontally.'},
+			{topic:'Databases',q:'Use Elasticache for?',choices:['Long-term archival','In-memory caching and fast data access','Relational DB','DNS'],a:1,ex:'ElastiCache provides Redis/Memcached in-memory caching.'},
+
+			// Architecture & Other (6)
+			{topic:'Architecture',q:'Well-Architected Framework has how many pillars?',choices:['3','5','7','9'],a:1,ex:'AWS Well-Architected has five pillars including operational excellence and security.'},
+			{topic:'Architecture',q:'Which service helps build event-driven architectures?',choices:['SQS & SNS','Route53 only','EBS volumes','EC2 Autoscaling'],a:0,ex:'SNS and SQS help create event-driven, decoupled systems.'},
+			{topic:'Architecture',q:'Infrastructure as Code tool provided by AWS is?',choices:['Terraform only','CloudFormation','S3','Lambda'],a:1,ex:'CloudFormation defines and provisions AWS resources via templates.'},
+			{topic:'Architecture',q:'Use CloudWatch for?',choices:['Monitoring and logs','Running containers','Database backups','DNS resolution'],a:0,ex:'CloudWatch collects logs and metrics and triggers alarms.'},
+			{topic:'Architecture',q:'An availability zone is?',choices:['A physical datacenter within a region','A separate AWS account','A global region','A lambda function'],a:0,ex:'AZs are isolated datacenters in an AWS region.'},
+			{topic:'Architecture',q:'Use SQS when?',choices:['You need synchronous calls','You need resilience via message queuing','You require file storage','You need DNS'],a:1,ex:'SQS decouples components using reliable message queues.'},
+		];
+
+		// Fill topics select
+		const topics = Array.from(new Set(questions.map(q=>q.topic)));
+		topics.forEach(t=>{const opt=document.createElement('option');opt.value=t;opt.textContent=t;topicSelect.appendChild(opt)});
+
+		// State
+		let quiz = {questions:[],index:0,correct:0,wrong:0,start:0};
+		let timerInterval=null;
+
+		function saveProgress(record){
+			const all = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+			all.unshift(record);
+			localStorage.setItem(STORAGE_KEY,JSON.stringify(all.slice(0,200)));
+		}
+
+		function loadProgress(){
+			return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+		}
+
+		function loadBadges(){
+			return JSON.parse(localStorage.getItem(BADGE_KEY)||'{"gold":0,"silver":0,"bronze":0}');
+		}
+
+		function saveBadges(b){ localStorage.setItem(BADGE_KEY,JSON.stringify(b)); }
+
+		function awardBadge(percent){
+			const b = loadBadges();
+			if(percent>=90) b.gold++;
+			else if(percent>=75) b.silver++;
+			else if(percent>=50) b.bronze++;
+			saveBadges(b); return b;
+		}
+
+		function updateBadgeUI(){
+			const b = loadBadges(); badgeTotal.textContent = b.gold + b.silver + b.bronze; goldCount.textContent = b.gold; silverCount.textContent = b.silver; bronzeCount.textContent = b.bronze;
+		}
+
+		function updateRecentUI(){
+			const list = loadProgress(); recentList.innerHTML='';
+			const max = Math.min(6,list.length);
+			for(let i=0;i<max;i++){const r=list[i]; const el=document.createElement('div'); el.style.borderBottom='1px solid #f1f1f1'; el.style.padding='8px 0'; el.innerHTML=`<div style="font-weight:600">${r.topic} — ${r.correct}/${r.total} (${Math.round(r.score)}%)</div><div class="small">${new Date(r.date).toLocaleString()} • ${Math.round(r.time)}s</div>`; recentList.appendChild(el)}
+			// summary
+			const all=list.slice(0,200);
+			const byTopic={}; all.forEach(x=>{ byTopic[x.topic]=byTopic[x.topic]||{sum:0,count:0}; byTopic[x.topic].sum+=x.score; byTopic[x.topic].count++; });
+		}
+
+		function updateTodayStats(){
+			const daily = JSON.parse(localStorage.getItem(DAILY_TIME_KEY)||'{}');
+			const todayKey = (new Date()).toISOString().slice(0,10);
+			const today = daily[todayKey]||0; todayTime.textContent = Math.round(today)+'s';
+			const days = Object.keys(daily).length; daysVisited.textContent = days;
+		}
+
+		function incrementDailyTime(seconds){
+			const daily = JSON.parse(localStorage.getItem(DAILY_TIME_KEY)||'{}');
+			const key = (new Date()).toISOString().slice(0,10);
+			daily[key] = (daily[key]||0) + seconds;
+			localStorage.setItem(DAILY_TIME_KEY,JSON.stringify(daily));
+		}
+
+		function startQuiz(selectedTopic, count){
+			const pool = selectedTopic==='all' ? questions.slice() : questions.filter(q=>q.topic===selectedTopic);
+			shuffle(pool);
+			pool.splice(count); // reduce to count
+			quiz.questions = pool; quiz.index=0; quiz.correct=0; quiz.wrong=0; quiz.start=Date.now();
+			homePanel.style.display='none'; quizArea.style.display='block'; resultArea.style.display='none'; badgesModal.style.display='none'; helpPanel.style.display='none';
+			quizTopic.textContent = selectedTopic==='all' ? 'Mixed' : selectedTopic; qProgress.textContent = `Question 1 / ${quiz.questions.length}`; scoreCur.textContent='0';
+			startTimer(); showQuestion();
+		}
+
+		function showQuestion(){
+			const cur = quiz.questions[quiz.index]; questionText.textContent = cur.q; choicesEl.innerHTML=''; explanationEl.style.display='none'; nextBtn.style.display='none'; finishBtn.style.display='none';
+			cur.choices.forEach((c,i)=>{ const b=document.createElement('div'); b.className='choice'; b.textContent = c; b.onclick = ()=>selectAnswer(i); choicesEl.appendChild(b); });
+			qProgress.textContent = `Question ${quiz.index+1} / ${quiz.questions.length}`;
+		}
+
+		function selectAnswer(i){
+			const cur = quiz.questions[quiz.index];
+			const els = Array.from(choicesEl.children);
+			// disable clicks
+			els.forEach(e=>e.style.pointerEvents='none');
+			const correct = (i===cur.a);
+			if(correct){ quiz.correct++; els[i].classList.add('correct'); }
+			else{ quiz.wrong++; els[i].classList.add('wrong'); els[cur.a].classList.add('correct'); }
+			explanationEl.style.display='block'; explanationEl.textContent = (correct? 'Correct! ':'Incorrect. ') + (cur.ex||'') + (correct? '': ' The correct answer is: '+cur.choices[cur.a]);
+			scoreCur.textContent = quiz.correct;
+			if(quiz.index < quiz.questions.length -1) nextBtn.style.display='inline-block'; else finishBtn.style.display='inline-block';
+		}
+
+		function nextQuestion(){ quiz.index++; showQuestion(); }
+
+		function finishQuiz(){
+			stopTimer(); const total = quiz.questions.length; const percent = (quiz.correct/total)*100;
+			const timeSec = Math.round((Date.now()-quiz.start)/1000);
+			incrementDailyTime(timeSec);
+			const record = {topic: quizTopic.textContent, correct: quiz.correct, wrong: quiz.wrong, total, score: percent, date: new Date().toISOString(), time: timeSec};
+			saveProgress(record); const badges = awardBadge(percent); updateBadgeUI(); updateRecentUI(); updateTodayStats();
+			// show result
+			quizArea.style.display='none'; resultArea.style.display='block';
+			resultSummary.innerHTML = `<div style="font-size:20px;font-weight:700">${Math.round(percent)}%</div><div class="small">${quiz.correct} correct • ${quiz.wrong} wrong • ${timeSec}s</div>`+ renderImprovement();
+			// set retake/new
+			retakeBtn.onclick = ()=>{ startQuiz(quizTopic.textContent.toLowerCase()==='mixed'?'all':quizTopic.textContent, quiz.questions.length); };
+			newQuizBtn.onclick = ()=>{ resultArea.style.display='none'; homePanel.style.display='block'; }
+		}
+
+		function renderImprovement(){
+			const all = loadProgress();
+			const byTopic = {};
+			all.forEach(r=>{ byTopic[r.topic]=byTopic[r.topic]||{sum:0,cnt:0}; byTopic[r.topic].sum+=r.score; byTopic[r.topic].cnt++; });
+			let suggestions = '<div style="margin-top:12px"><strong>Areas to improve</strong><ul style="margin-left:18px">';
+			const low = Object.entries(byTopic).filter(([t,s])=> (s.sum/s.cnt) < 70 ).slice(0,5);
+			if(low.length===0) suggestions += '<li>None — keep going!</li>';
+			low.forEach(([t,s])=>{ suggestions += `<li>${t} — average ${Math.round(s.sum/s.cnt)}%</li>` });
+			suggestions += '</ul></div>';
+			return suggestions;
+		}
+
+		function shuffle(arr){ for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} }
+
+		// Timer
+		let timerStart = 0;
+		function startTimer(){ timerStart = Date.now(); timerInterval = setInterval(()=>{ const s = Math.round((Date.now()-timerStart)/1000); quizTimer.textContent = s+'s'; },500); }
+		function stopTimer(){ clearInterval(timerInterval); timerInterval=null; quizTimer.textContent = '0s'; }
+
+		// Event bindings
+		startBtn.onclick = ()=>{ const t = topicSelect.value; const n = Math.min(60,Math.max(1,Number(numQ.value)||10)); startQuiz(t,n); };
+		randomizeBtn.onclick = ()=>{ const n = 10; startQuiz('all',n); };
+		nextBtn.onclick = ()=>{ nextQuestion(); };
+		finishBtn.onclick = ()=>{ finishQuiz(); };
+		quitBtn.onclick = ()=>{ if(confirm('Quit quiz? Progress in this quiz will be lost.')){ stopTimer(); quizArea.style.display='none'; homePanel.style.display='block'; } };
+		viewBadges.onclick = ()=>{ badgesModal.style.display = badgesModal.style.display==='none'?'block':'none'; }
+		clearData.onclick = ()=>{ if(confirm('Clear all saved progress and badges?')){ localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(BADGE_KEY); localStorage.removeItem(DAILY_TIME_KEY); updateRecentUI(); updateBadgeUI(); updateTodayStats(); } };
+		goHome.onclick = ()=>{ homePanel.style.display='block'; progressPanel.style.display='block'; helpPanel.style.display='none'; resultArea.style.display='none'; quizArea.style.display='none'; }
+		goProgress.onclick = ()=>{ homePanel.style.display='none'; progressPanel.style.display='block'; helpPanel.style.display='none'; resultArea.style.display='none'; quizArea.style.display='none'; }
+		goHelp.onclick = ()=>{ homePanel.style.display='none'; progressPanel.style.display='none'; helpPanel.style.display='block'; resultArea.style.display='none'; quizArea.style.display='none'; }
+
+		// Initialization
+		const progressPanel = document.getElementById('progressPanel'); const helpPanel = document.getElementById('helpPanel');
+		updateBadgeUI(); updateRecentUI(); updateTodayStats();
+		// Intro modal for first-time users
+		if(!localStorage.getItem(SEEN_KEY)){
+			alert('Welcome to AWS Prep Game!\n\nChoose a topic, set the number of questions, and start. You will get immediate feedback and explanations. Your progress is saved locally. Good luck!');
+			localStorage.setItem(SEEN_KEY,'1');
+			// mark visit for today
+		}
+
+		// increment days visited if first visit today
+		(function markVisit(){ const daily = JSON.parse(localStorage.getItem(DAILY_TIME_KEY)||'{}'); const key = (new Date()).toISOString().slice(0,10); if(!daily.__visited){ daily.__visited = daily.__visited||{};} if(!daily[key]){ daily[key]=daily[key]||0; localStorage.setItem(DAILY_TIME_KEY,JSON.stringify(daily)); updateTodayStats(); } })();
+
+		// Expose basic keyboard control
+		document.addEventListener('keydown', e=>{ if(e.key==='Enter'){ const visible = quizArea.style.display!=='none'; if(visible){ const nextShow = nextBtn.style.display!=='none'; if(nextShow) nextBtn.click(); else if(finishBtn.style.display!=='none') finishBtn.click(); } } });
+
+	</script>
+</body>
+</html>
